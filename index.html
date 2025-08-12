@@ -20,9 +20,22 @@
   <button id="submitBtn">Submit</button>
 </div>
 <!-- Preview is exactly 100x100 physical pixels -->
-<canvas id="previewCanvas" width="100" height="100" style="margin-top:10px; border:1px solid black; image-rendering: pixelated;"></canvas>
+<div id="previews" style="display:none; margin-top:10px;">
+  <div style="display:inline-block; text-align:center; margin-right:20px;">
+    <div>Your Drawing</div>
+    <canvas id="drawingPreview" width="100" height="100" 
+      style="border:1px solid black; image-rendering:pixelated;"></canvas>
+  </div>
+  <div style="display:inline-block; text-align:center;">
+    <div>Target Country</div>
+    <canvas id="countryPreview" width="100" height="100" 
+      style="border:1px solid black; image-rendering:pixelated;"></canvas>
+  </div>
+</div>
 
 <script>
+let targetCountry;
+  
 fetch('country_vectors.json')
   .then(response => response.json())
   .then(data => {
@@ -124,7 +137,21 @@ function floodFill(data, x, y, target, replacement, w, h) {
     stack.push([cx+1, cy],[cx-1, cy],[cx, cy+1],[cx, cy-1]);
   }
 }
-
+function jaccards(vector1, vector2) {
+    let intersection = 0;
+    let union = 0;
+  
+    for (let i = 0; i < vector1.length; i++) {
+      if (vector1[i] === 1 && vector2[i] === 1) {
+        intersection++;
+      }
+      if (vector1[i] === 1 || vector2[i] === 1) {
+        union++;
+      }
+    }
+  
+    return union === 0 ? 0 : intersection / union;
+}
 function submitDrawing() {
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = 100;
@@ -173,15 +200,24 @@ function submitDrawing() {
     arr.push(finalData[i] < 128 ? 1 : 0);
   }
 
+  document.getElementById('previews').style.display = 'block';
+
   // Draw preview pixel by pixel from arr
-  const preview = document.getElementById('previewCanvas').getContext('2d');
-  preview.clearRect(0, 0, 100, 100);
+  const preview1 = document.getElementById('drawingPreview').getContext('2d');
+  const preview2 = document.getElementById('countryPreview').getContext('2d');
+  preview1.clearRect(0, 0, 100, 100);
+  preview2.clearRect(0, 0, 100, 100);
   for (let i = 0; i < arr.length; i++) {
     const x = i % 100;
     const y = Math.floor(i / 100);
-    preview.fillStyle = arr[i] === 1 ? 'black' : 'white';
-    preview.fillRect(x, y, 1, 1);
+    preview1.fillStyle = arr[i] === 1 ? 'black' : 'white';
+    preview1.fillRect(x, y, 1, 1);
+    preview2.fillStyle = targetCountry.vector[i] === 1 ? 'black' : 'white';
+    preview2.fillRect(x, y, 1, 1);
   }
+
+  const similarity = jaccards(arr, targetCountry.vector);
+  alert(`Similarity to ${targetCountry.name}: ${(similarity * 100).toFixed(2)}%`);
 }
 </script>
 </body>
